@@ -23,7 +23,7 @@ n_train = 60000
 n_test = 10000
 
 # Step 1: Read in data
-mnist_folder = 'data/mnist'
+mnist_folder = '/home/baiyu/Data/MNIST/raw'
 utils.download_mnist(mnist_folder)
 train, val, test = utils.read_mnist(mnist_folder, flatten=True)
 
@@ -34,11 +34,9 @@ train_data = train_data.shuffle(10000) # if you want to shuffle your data
 train_data = train_data.batch(batch_size)
 
 # create testing Dataset and batch it
-test_data = None
-#############################
-########## TO DO ############
-#############################
-
+test_data = tf.data.Dataset.from_tensor_slices(test)
+test_data = test_data.shuffle(10000)
+test_data = test_data.batch(batch_size)
 
 # create one iterator and initialize it with different datasets
 iterator = tf.data.Iterator.from_structure(train_data.output_types, 
@@ -53,41 +51,27 @@ test_init = iterator.make_initializer(test_data)	# initializer for train_data
 # b is initialized to 0
 # shape of w depends on the dimension of X and Y so that Y = tf.matmul(X, w)
 # shape of b depends on Y
-w, b = None, None
-#############################
-########## TO DO ############
-#############################
-
+w = tf.get_variable('w', shape=[img.shape[1], label.shape[1]], initializer=tf.random_normal_initializer(mean=0, stddev=0.01))
+b = tf.get_variable('b', shape=[label.shape[1]], initializer=tf.zeros_initializer)
 
 # Step 4: build model
 # the model that returns the logits.
 # this logits will be later passed through softmax layer
-logits = None
-#############################
-########## TO DO ############
-#############################
-
+logits = tf.add(tf.matmul(img, w), b, name='logits')
 
 # Step 5: define loss function
 # use cross entropy of softmax of logits as the loss function
-loss = None
-#############################
-########## TO DO ############
-#############################
-
+entropy = tf.nn.softmax_cross_entropy_with_logits_v2(labels=label, logits=logits, name='entropy')
+loss = tf.reduce_mean(entropy, name='loss')
 
 # Step 6: define optimizer
 # using Adamn Optimizer with pre-defined learning rate to minimize loss
-optimizer = None
-#############################
-########## TO DO ############
-#############################
-
+optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(loss)
 
 # Step 7: calculate accuracy with test set
 preds = tf.nn.softmax(logits)
 correct_preds = tf.equal(tf.argmax(preds, 1), tf.argmax(label, 1))
-accuracy = tf.reduce_sum(tf.cast(correct_preds, tf.float32))
+accuracy = tf.reduce_sum(tf.cast(correct_preds, tf.float32), name='accuracy')
 
 writer = tf.summary.FileWriter('./graphs/logreg', tf.get_default_graph())
 with tf.Session() as sess:
